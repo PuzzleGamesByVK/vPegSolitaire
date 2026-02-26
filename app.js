@@ -1,3 +1,6 @@
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
 const { createApp, ref, onMounted } = Vue;
 
 createApp({
@@ -22,7 +25,8 @@ createApp({
 
             // Updated OrbitControls for newer Three.js versions
             // Note: In newer versions, we use the global THREE.OrbitControls if loaded via CDN
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Makes movement smoother
 
             const animate = () => {
                 requestAnimationFrame(animate);
