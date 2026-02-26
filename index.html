@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>vPegSolitaire GitHub Edition</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="modal" v-if="showProfile">
+            <div class="modal-content">
+                <h3>Edit Profile</h3>
+                <input v-model="userName" placeholder="Enter Name">
+                <button @click="saveProfile">Save</button>
+                <button @click="showProfile = false">Close</button>
+            </div>
+        </div>
+
+        <div id="mDiv1">
+            <button @click="showProfile = true">👤</button>
+            <span>Score: {{ score }}</span>
+            <span v-if="score >= 100" style="color: lime;">🔥 Online Unlocked</span>
+            <button @click="resetGame">↻</button>
+        </div>
+
+        <div id="container">
+            <canvas id="c"></canvas>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
