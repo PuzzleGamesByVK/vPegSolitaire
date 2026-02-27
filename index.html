@@ -1,43 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>vPegSolitaire GitHub Edition</title>
+    <meta charset="UTF-8">
+    <title>vPegSolitaire GitHub</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app">
-        <div class="modal" v-if="showProfile">
-            <div class="modal-content">
-                <h3>Edit Profile</h3>
-                <input v-model="userName" placeholder="Enter Name">
-                <button @click="saveProfile">Save</button>
-                <button @click="showProfile = false">Close</button>
+
+<div id="app">
+    <div id="mDiv1">
+        <button class="ui-btn" @click="showMenu = true">☰ Menu</button>
+        <button class="ui-btn" @click="showProfile = true">{{ userName }}</button>
+        <button class="ui-btn score-btn" @click="INFOalertF('Score Info: ' + numericScore + ' total points.')">
+            {{ displayScore }}
+        </button>
+        <button class="ui-btn" @click="resetGame">↻</button>
+    </div>
+
+    <div id="container">
+        <canvas id="c"></canvas>
+    </div>
+
+    <div class="modal-black" v-if="showMenu">
+        <div class="modal-content">
+            <span class="close-modal" @click="showMenu = false">&times;</span>
+            <h2>Game Menu</h2>
+            <hr>
+            <button class="menu-item" @click="startLocal">Local Levels</button>
+            <button class="menu-item" :disabled="!isOnlineEnabled" @click="fetchCloud">
+                {{ isOnlineEnabled ? '☁ Cloud Levels' : '🔒 Cloud (Locked)' }}
+            </button>
+            <button class="menu-item" @click="showFAQ">Help / FAQ</button>
+            <button class="menu-item" @click="showMenu = false">Resume Game</button>
+        </div>
+    </div>
+
+    <div class="modal-black" v-if="showProfile">
+        <div class="modal-content">
+            <span class="close-modal" @click="showProfile = false">&times;</span>
+            <h2>Player Profile</h2>
+            <p>Edit your name for the leaderboard:</p>
+            <input type="text" v-model="userName" class="profile-input">
+            <br><br>
+            <button @click="saveProfile">Save Changes</button>
+            
+            <div v-if="isOnlineEnabled" class="firebase-status">
+                <p>✅ Firebase Sync Active</p>
+                <small>Project: vPegSolitaireFB</small>
             </div>
         </div>
+    </div>
 
-        <div id="mDiv1">
-            <button @click="showProfile = true">👤</button>
-            <span>Score: {{ score }}</span>
-            <span v-if="score >= 100" style="color: lime;">🔥 Online Unlocked</span>
-            <button @click="resetGame">↻</button>
-        </div>
-
-        <div id="container">
-            <canvas id="c"></canvas>
+    <div class="modal-black" v-if="alertVisible">
+        <div class="modal-content">
+            <h2>Notice</h2>
+            <div class="alert-body" v-html="alertMessage"></div>
+            <hr>
+            <button @click="alertVisible = false">Understood</button>
         </div>
     </div>
 
-    <div class="modal-black" v-if="alertVisible" style="display: block;">
-    <div class="modal-content">
-        <span class="close-modal" @click="alertVisible = false">&times;</span>
-        <p v-html="alertMessage"></p>
-        <button @click="alertVisible = false">OK</button>
-    </div>
 </div>
 
-    <script type="module" src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
