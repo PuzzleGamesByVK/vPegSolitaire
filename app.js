@@ -65,8 +65,6 @@ createApp({
             INFOalertF("Connecting to Firebase Project: puzzlegamesbyvk...");
         };
 
-        // Inside setup() in app.js
-
 const currentLevel = ref(0); // Index for Stages6of7
 const pegs = []; // To keep track of 3D objects for raycasting/clicking
 
@@ -110,56 +108,77 @@ const createBoard = (scene) => {
         }
     }
 };
+
+    let scene, camera, renderer, raycaster, pointer;
         
-        const initGame = () => {
-            console.log("Stages loaded:", Stages6of7.length);// We will use Stages6of7 here in the next step!
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x591e8a);
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            
-            // Note: OrbitControls is used here from the import above
-            const controls = new OrbitControls(camera, renderer.domElement);
-            camera.position.set(0, 0, 10);
+    const initGame = () => {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x591e8a);
 
-            // ADD LIGHTS
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 15); // Moved back so you can see the board center
+
+    renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio); // Sharpness for high-res screens
+
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2();
+
+    // Lights - Required to see MeshPhongMaterial!
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
-    const pointLight = new THREE.PointLight(0xffffff, 1);
-    pointLight.position.set(5, 5, 5);
-    scene.add(pointLight);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    sunLight.position.set(5, 10, 7);
+    scene.add(sunLight);
 
-    // MOUSE INTERACTION (Raycaster)
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    // UNIFIED POINTER LOGIC (Touch + Click)
+    const handleInput = (event) => {
+        // Use clientX/Y for mouse or touches[0] for touch
+        const x = event.touches ? event.touches[0].clientX : event.clientX;
+        const y = event.touches ? event.touches[0].clientY : event.clientY;
 
-    const onMouseClick = (event) => {
-        // Calculate mouse position in normalized device coordinates
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        pointer.x = (x / window.innerWidth) * 2 - 1;
+        pointer.y = -(y / window.innerHeight) * 2 + 1;
 
-        raycaster.setFromCamera(mouse, camera);
+        raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(pegs);
 
         if (intersects.length > 0) {
-            const selectedPeg = intersects[0].object;
-            INFOalertF(`Selected Peg at: ${selectedPeg.userData.x}, ${selectedPeg.userData.y}`);
-            // Logic for jumping will go here!
+            const p = intersects[0].object.userData;
+            INFOalertF(`Input at: X${p.x} Y${p.y}`);
+            // This is where MoveValidation will trigger
         }
     };
 
-    window.addEventListener('click', onMouseClick);
+    // Event Listeners for both PC and Mobile
+    window.addEventListener('mousedown', handleInput);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, { passive: false });
+
+    const animate = () => {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    };
+
+    createBoard(); // Build the pegs
+    animate();    // Start rendering
+    };
+
+    const validateMove = (start, end) => {
+    // 1. Calculate distance (using your ABCcds/inicialXY logic)
+    const dx = Math.abs(start.x - end.x);
+    const dy = Math.abs(start.y - end.y);
     
-    // Build the initial board
-    createBoard(scene);
-            
-            const animate = () => {
-                requestAnimationFrame(animate);
-                renderer.render(scene, camera);
-            };
-            animate();
-        };
+    // 2. Identify Mid-Point (The peg being removed)
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+
+    // 3. Logic check based on HX vs HV
+    // (We will fill this with your specific 6-way/4-way math next)
+    console.log(`Checking move from ${start.x},${start.y} to ${end.x},${end.y}`);
+    
+    return true; // Temporary
+    };
 
         onMounted(() => {
             initGame();
