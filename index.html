@@ -30,6 +30,14 @@
         </div>
     </div>
 
+    <div class="modal-black" v-if="alertVisible" style="display: block;">
+    <div class="modal-content">
+        <span class="close-modal" @click="alertVisible = false">&times;</span>
+        <p v-html="alertMessage"></p>
+        <button @click="alertVisible = false">OK</button>
+    </div>
+</div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
