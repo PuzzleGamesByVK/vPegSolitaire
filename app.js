@@ -65,6 +65,52 @@ createApp({
             INFOalertF("Connecting to Firebase Project: puzzlegamesbyvk...");
         };
 
+        // Inside setup() in app.js
+
+const currentLevel = ref(0); // Index for Stages6of7
+const pegs = []; // To keep track of 3D objects for raycasting/clicking
+
+const createBoard = (scene) => {
+    // 1. Clear existing pegs
+    pegs.forEach(p => scene.remove(p));
+    pegs.length = 0;
+
+    const levelData = Stages6of7[currentLevel.value];
+    
+    // Your original logic used a jump of 3 in the array for X, Y, Type
+    // We'll use a loop to iterate through the Int16Array
+    for (let i = 0; i < levelData.length; i += 3) {
+        const x = levelData[i];
+        const y = levelData[i + 1];
+        const type = levelData[i + 2];
+
+        // Create the "Hole" (The base circle)
+        const holeGeo = new THREE.CircleGeometry(0.45, 32);
+        const holeMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+        const hole = new THREE.Mesh(holeGeo, holeMat);
+        
+        // Use inicialXY to offset positions if needed, or direct coordinates
+        hole.position.set(x * 0.1, y * 0.1, 0); 
+        scene.add(hole);
+
+        // If type is a "Peg" (e.g., type > 0), add the 3D peg
+        if (type > 0) {
+            const pegGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 32);
+            const pegMat = new THREE.MeshPhongMaterial({ color: 0x00ffcc });
+            const peg = new THREE.Mesh(pegGeo, pegMat);
+            
+            peg.position.set(x * 0.1, y * 0.1, 0.25);
+            peg.rotation.x = Math.PI / 2; // Lay it upright
+            
+            // Store custom data for clicking later
+            peg.userData = { x, y, type };
+            
+            scene.add(peg);
+            pegs.push(peg);
+        }
+    }
+};
+        
         const initGame = () => {
             console.log("Stages loaded:", Stages6of7.length);// We will use Stages6of7 here in the next step!
             const scene = new THREE.Scene();
@@ -77,6 +123,37 @@ createApp({
             const controls = new OrbitControls(camera, renderer.domElement);
             camera.position.set(0, 0, 10);
 
+            // ADD LIGHTS
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
+
+    // MOUSE INTERACTION (Raycaster)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const onMouseClick = (event) => {
+        // Calculate mouse position in normalized device coordinates
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(pegs);
+
+        if (intersects.length > 0) {
+            const selectedPeg = intersects[0].object;
+            INFOalertF(`Selected Peg at: ${selectedPeg.userData.x}, ${selectedPeg.userData.y}`);
+            // Logic for jumping will go here!
+        }
+    };
+
+    window.addEventListener('click', onMouseClick);
+    
+    // Build the initial board
+    createBoard(scene);
+            
             const animate = () => {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
