@@ -37,6 +37,10 @@ createApp({
             alertVisible.value = true;
         };
 
+        const resetGame = () => {
+            INFOalertF("Game Resetting... (Logic to be added next!)");
+        };
+        
         const showFAQ = () => {
             // This is the long text from your PegSOL3JS_BE.html file
             const faqTXT = `<b>How to Play</b><br>
@@ -62,6 +66,7 @@ createApp({
         };
 
         const initGame = () => {
+            console.log("Stages loaded:", Stages6of7.length);// We will use Stages6of7 here in the next step!
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x591e8a);
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -86,7 +91,7 @@ createApp({
         return { 
             userName, iPegSLD, displayScore, numericScore, 
             isOnlineEnabled, showMenu, showProfile, alertVisible, alertMessage,
-            saveProfile, INFOalertF, showFAQ, fetchCloud
+            saveProfile, INFOalertF, showFAQ, fetchCloud, resetGame
         };
     }
 }).mount('#app');
