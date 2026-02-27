@@ -35,44 +35,6 @@ createApp({
 
         const INFOalertF = (tXt) => { alertMessage.value = tXt; alertVisible.value = true; };
 
-        // --- BOARD BUILDER ---
-        const createBoard = () => {
-            // Clear previous
-            pegs.forEach(p => scene.remove(p));
-            holes.forEach(h => scene.remove(h));
-            pegs.length = 0;
-            holes.length = 0;
-
-            const levelData = Stages6of7[currentLevel.value];
-            
-            for (let i = 0; i < levelData.length; i += 3) {
-                const x = levelData[i];
-                const y = levelData[i + 1];
-                const type = levelData[i + 2];
-
-                // Base Hole (Gold Ring)
-                const holeGeo = new THREE.TorusGeometry(0.4, 0.05, 16, 32);
-                const holeMat = new THREE.MeshPhongMaterial({ color: 0xFFD700 }); // Gold
-                const hole = new THREE.Mesh(holeGeo, holeMat);
-                hole.position.set(x * 0.1, y * 0.1, 0);
-                hole.userData = { x, y, type: 0, isHole: true };
-                scene.add(hole);
-                holes.push(hole);
-
-                if (type > 0) {
-                    // Peg (Cyan Neon)
-                    const pegGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 32);
-                    const pegMat = new THREE.MeshPhongMaterial({ color: 0x00FFFF, emissive: 0x005555 });
-                    const peg = new THREE.Mesh(pegGeo, pegMat);
-                    peg.position.set(x * 0.1, y * 0.1, 0.4);
-                    peg.rotation.x = Math.PI / 2;
-                    peg.userData = { x, y, type, isHole: false };
-                    scene.add(peg);
-                    pegs.push(peg);
-                }
-            }
-        };
-
         const handleInput = (event) => {
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -110,37 +72,93 @@ createApp({
             createBoard(); // Refresh board for now
         };
 
+const createBoard = () => {
+            // Safety check: ensure scene is defined
+            if (!scene) return;
+
+            // Clear previous
+            pegs.forEach(p => scene.remove(p));
+            holes.forEach(h => scene.remove(h));
+            pegs.length = 0;
+            holes.length = 0;
+
+            const levelData = Stages6of7[currentLevel.value];
+            if (!levelData) return;
+            
+            for (let i = 0; i < levelData.length; i += 3) {
+                const x = levelData[i];
+                const y = levelData[i + 1];
+                const type = levelData[i + 2];
+
+                // Base Hole (Gold Ring)
+                const holeGeo = new THREE.TorusGeometry(0.4, 0.05, 12, 24);
+                const holeMat = new THREE.MeshPhongMaterial({ color: 0xFFD700 }); 
+                const hole = new THREE.Mesh(holeGeo, holeMat);
+                
+                // Position adjustment: Ensure this matches your data scale
+                hole.position.set(x * 0.5, y * 0.5, 0); 
+                hole.userData = { x, y, type: 0, isHole: true };
+                scene.add(hole);
+                holes.push(hole);
+
+                if (type > 0) {
+                    // Peg (Cyan Neon)
+                    const pegGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 24);
+                    const pegMat = new THREE.MeshPhongMaterial({ 
+                        color: 0x00FFFF, 
+                        emissive: 0x002222,
+                        shininess: 100 
+                    });
+                    const peg = new THREE.Mesh(pegGeo, pegMat);
+                    peg.position.set(x * 0.5, y * 0.5, 0.4);
+                    peg.rotation.x = Math.PI / 2;
+                    peg.userData = { x, y, type, isHole: false };
+                    scene.add(peg);
+                    pegs.push(peg);
+                }
+            }
+        };
+
         const initGame = () => {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050520); // Deep Midnight Blue
+            scene.background = new THREE.Color(0x050520); 
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, -5, 12);
+            // Move camera back further and higher up
+            camera.position.set(0, -15, 20); 
+            camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             
-            new OrbitControls(camera, renderer.domElement);
+            // OrbitControls help you find the board if it's off-screen
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
             raycaster = new THREE.Raycaster();
             pointer = new THREE.Vector2();
 
-            const light = new THREE.PointLight(0xffffff, 1, 100);
-            light.position.set(10, 10, 10);
+            // Stronger Lighting
+            const light = new THREE.PointLight(0xffffff, 1.5, 100);
+            light.position.set(10, 10, 20);
             scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404040));
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
+            // Input listeners
             window.addEventListener('mousedown', handleInput);
-            window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, { passive: false });
+            window.addEventListener('touchstart', (e) => { handleInput(e); }, { passive: false });
 
             const animate = () => {
                 requestAnimationFrame(animate);
+                controls.update(); // Required for damping
                 renderer.render(scene, camera);
             };
 
             createBoard();
             animate();
         };
-
+        
         onMounted(initGame);
 
         return { userName, displayScore, isOnlineEnabled, showMenu, showProfile, alertVisible, alertMessage, INFOalertF, saveProfile: () => showProfile.value = false };
