@@ -6,27 +6,23 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
     setup() {
         // --- DATA STATE ---
-        // Mirroring your original iPegSLD structure: [ [], [], [], [], [], ["date"] ]
         const iPegSLD = ref(JSON.parse(localStorage.getItem('iPegSLD')) || [[],[],[],[],[],["2026-02-27"]]);
         const userName = ref(localStorage.getItem('vPeg_User') || 'Guest');
         
         // Modal Visibility States
+        const showMenu = ref(false);
         const showProfile = ref(false);
         const alertVisible = ref(false);
         const alertMessage = ref("");
 
-        // --- COMPUTED SCORE (The CalcScoreF logic) ---
+        // --- COMPUTED SCORES ---
         const displayScore = computed(() => {
-            // Porting your logic: p is based on packs (index 1), g is based on stages (index 2)
             const pPoints = iPegSLD.value[1] ? iPegSLD.value[1].length : 0;
             const gPoints = iPegSLD.value[2] ? iPegSLD.value[2].length : 0;
-            
-            // Returns the format "p1g01" as seen in your original game
             return `p${pPoints}g${gPoints.toString().padStart(2, '0')}`;
         });
 
         const numericScore = computed(() => {
-            // Logic to unlock Firebase: p points count for 10, g points for 1
             const p = iPegSLD.value[1]?.length || 0;
             const g = iPegSLD.value[2]?.length || 0;
             return (p * 10) + g; 
@@ -40,16 +36,46 @@ createApp({
             alertVisible.value = true;
         };
 
+        const showFAQ = () => {
+            // This is the long text from your PegSOL3JS_BE.html file
+            const faqTXT = `<b>How to Play</b><br>
+                The target is to leave only one peg on the board. 
+                Jumps are performed by one peg over another into an empty hole.<br><br>
+                <b>Score System</b><br>
+                p-points: Completed Packs (Cloud levels).<br>
+                g-points: Completed individual stages.<br><br>
+                <b>HX vs HV</b><br>
+                HX (Hexagonal) allows 6 move directions, while HV (Horizontal-Vertical) allows 4.`;
+            INFOalertF(faqTXT);
+        };
+
         const saveProfile = () => {
             localStorage.setItem('vPeg_User', userName.value);
             showProfile.value = false;
-            INFOalertF("Profile Updated locally!");
+            INFOalertF("Profile saved!");
+        };
+
+        const fetchCloud = () => {
+            if(!isOnlineEnabled.value) return;
+            INFOalertF("Connecting to Firebase Project: puzzlegamesbyvk...");
         };
 
         const initGame = () => {
-            // Your Three.js code will live here
-            // I will help you migrate the massive "Stages" logic next
-            console.log("Three.js Initializing...");
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x591e8a);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Note: OrbitControls is used here from the import above
+            const controls = new OrbitControls(camera, renderer.domElement);
+            camera.position.set(0, 0, 10);
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            };
+            animate();
         };
 
         onMounted(() => {
@@ -58,8 +84,8 @@ createApp({
 
         return { 
             userName, iPegSLD, displayScore, numericScore, 
-            isOnlineEnabled, showProfile, alertVisible, alertMessage,
-            saveProfile, INFOalertF 
+            isOnlineEnabled, showMenu, showProfile, alertVisible, alertMessage,
+            saveProfile, INFOalertF, showFAQ, fetchCloud
         };
     }
 }).mount('#app');
