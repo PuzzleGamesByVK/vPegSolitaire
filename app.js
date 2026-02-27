@@ -1,49 +1,65 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-const { createApp, ref, onMounted } = Vue;
+const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-        const userName = ref(localStorage.getItem('vPeg_User') || 'New Player');
-        const score = ref(parseInt(localStorage.getItem('vPeg_Score')) || 0);
+        // --- DATA STATE ---
+        // Mirroring your original iPegSLD structure: [ [], [], [], [], [], ["date"] ]
+        const iPegSLD = ref(JSON.parse(localStorage.getItem('iPegSLD')) || [[],[],[],[],[],["2026-02-27"]]);
+        const userName = ref(localStorage.getItem('vPeg_User') || 'Guest');
+        
+        // Modal Visibility States
         const showProfile = ref(false);
+        const alertVisible = ref(false);
+        const alertMessage = ref("");
 
-        const initGame = () => {
-            // Your original THREE.js logic from vPegSolitaire.html
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x591e8a);
+        // --- COMPUTED SCORE (The CalcScoreF logic) ---
+        const displayScore = computed(() => {
+            // Porting your logic: p is based on packs (index 1), g is based on stages (index 2)
+            const pPoints = iPegSLD.value[1] ? iPegSLD.value[1].length : 0;
+            const gPoints = iPegSLD.value[2] ? iPegSLD.value[2].length : 0;
             
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, -2, 8);
+            // Returns the format "p1g01" as seen in your original game
+            return `p${pPoints}g${gPoints.toString().padStart(2, '0')}`;
+        });
 
-            const renderer = new THREE.WebGLRenderer({
-                canvas: document.querySelector('#c'),
-                antialias: true 
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        const numericScore = computed(() => {
+            // Logic to unlock Firebase: p points count for 10, g points for 1
+            const p = iPegSLD.value[1]?.length || 0;
+            const g = iPegSLD.value[2]?.length || 0;
+            return (p * 10) + g; 
+        });
 
-            // Updated OrbitControls for newer Three.js versions
-            // Note: In newer versions, we use the global THREE.OrbitControls if loaded via CDN
-            const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; // Makes movement smoother
+        const isOnlineEnabled = computed(() => numericScore.value >= 100);
 
-            const animate = () => {
-                requestAnimationFrame(animate);
-                renderer.render(scene, camera);
-            };
-            animate();
+        // --- FUNCTIONS ---
+        const INFOalertF = (tXt) => {
+            alertMessage.value = tXt;
+            alertVisible.value = true;
         };
 
         const saveProfile = () => {
             localStorage.setItem('vPeg_User', userName.value);
             showProfile.value = false;
+            INFOalertF("Profile Updated locally!");
+        };
+
+        const initGame = () => {
+            // Your Three.js code will live here
+            // I will help you migrate the massive "Stages" logic next
+            console.log("Three.js Initializing...");
         };
 
         onMounted(() => {
             initGame();
         });
 
-        return { userName, score, showProfile, saveProfile };
+        return { 
+            userName, iPegSLD, displayScore, numericScore, 
+            isOnlineEnabled, showProfile, alertVisible, alertMessage,
+            saveProfile, INFOalertF 
+        };
     }
 }).mount('#app');
