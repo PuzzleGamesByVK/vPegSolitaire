@@ -386,7 +386,7 @@ new Int16Array([145,240,250,335,345,355,430,440,450,460,525,535,545,555,565,620,
 860,870,880,905,915,925,935,945,955,965,975,985]),  //hex triangle 9,9,9
 ];
 
-export export const pack5chr = ['TUTORa','LAZLOs','svssHV','TUTORb','mostHX','2floor','cloudA','cloudB','myPegs','cldDrp']
+export const pack5chr = ['TUTORa','LAZLOs','svssHV','TUTORb','mostHX','2floor','cloudA','cloudB','myPegs','cldDrp']
 
 export const ABC2468 = new Int16Array([
 200,210,220,230,240,250,260,270,280,290,
