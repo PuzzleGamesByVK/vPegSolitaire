@@ -61,6 +61,16 @@
         </div>
     </div>
 
+    <div class="sidebar">
+    <h3>Stages</h3>
+    <div v-for="(stage, index) in LaslosLeapOldStyleIdxs" 
+         :key="index" 
+         @click="loadStage(index)"
+         :class="{ active: currentStageIdx === index }">
+        {{ index + 1 }}. {{ stage[1] }}
+    </div>
+</div>
+
 </div>
 
 <script type="importmap">
