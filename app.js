@@ -9,6 +9,7 @@ createApp({
     const currentStageIdx = ref(0);
     const board = ref(new Int8Array(81));
     const moveCount = ref(0);
+    const selectedIdx = ref(null); // Ensure this is declared BEFORE loadStage
 
     // FIX: Use .value inside computed functions
     const stageName = computed(() => {
