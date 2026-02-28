@@ -17,7 +17,7 @@ createApp({
     });
 
     const currentPar = computed(() => {
-        return LazloParsPerStage[currentStageIdx.value] || 0;
+        return LazloPars[currentStageIdx.value] || 0;
     });
         
         const themes = {
