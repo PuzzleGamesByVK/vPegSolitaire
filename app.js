@@ -52,6 +52,41 @@ createApp({
 
         const isOnlineEnabled = computed(() => numericScore.value >= 330);
 
+		       // --- FUNCTIONS ---
+        const INFOalertF = (tXt) => {
+            alertMessage.value = tXt;
+            alertVisible.value = true;
+        };
+
+        const resetGame = () => {
+            INFOalertF("Game Resetting... (Logic to be added next!)");
+        };
+        
+        const showFAQ = () => {
+            // This is the long text from your PegSOL3JS_BE.html file
+            const faqTXT = `<b>How to Play</b><br>
+                The target is to leave only one peg on the board. 
+                Jumps are performed by one peg over another into an empty hole.<br><br>
+                <b>Score System</b><br>
+                p-points: Completed Packs (Cloud levels).<br>
+                g-points: Completed individual stages.<br><br>
+                <b>HX vs HV</b><br>
+                HX (Hexagonal) allows 6 move directions, while HV (Horizontal-Vertical) allows 4.`;
+            INFOalertF(faqTXT);
+        };
+
+        const saveProfile = () => {
+            localStorage.setItem('vPeg_User', userName.value);
+            showProfile.value = false;
+            INFOalertF("Profile saved!");
+        };
+
+        const fetchCloud = () => {
+            if(!isOnlineEnabled.value) return;
+            INFOalertF("Connecting to Firebase Project: puzzlegamesbyvk...");
+        };
+
+
         // --- 4. BOARD LOGIC (Appear/Disappear Mechanism) ---
         const spawn = (id, kind, color, z) => {
             const pos = inicialXY[id];
