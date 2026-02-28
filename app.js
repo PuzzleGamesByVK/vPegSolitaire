@@ -1,3 +1,4 @@
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Stages6of7, inicialXY, ABCcds } from './stages.js';
@@ -6,31 +7,22 @@ const { createApp, ref, computed, onMounted, watch } = Vue;
 
 createApp({
     setup() {
-        // --- 1. MULTI-PLAYER & DATA STATE ---
+        // --- 1. STATE ---
         const players = ref(JSON.parse(localStorage.getItem('vPeg_Players')) || [
             { name: 'Player 1', data: [[],[],[],[],[],["2026-02-27"]] },
             { name: 'Player 2', data: [[],[],[],[],[],["2026-02-27"]] }
         ]);
         const currentPlayerIdx = ref(parseInt(localStorage.getItem('vPeg_CurrentIdx')) || 0);
-        
-        // Shortcut to current active player's data
-        const iPegSLD = computed(() => players.value[currentPlayerIdx.value].data);
-        const userName = computed(() => players.value[currentPlayerIdx.value].name);
-
-        // Game Navigation (Initial: LoadStageF(2,0))
         const currentPack = ref(2); 
         const currentStage = ref(0);
         
-        // Modal States
+        // Modal & Selection
         const showMenu = ref(false);
-        const showProfile = ref(false);
         const alertVisible = ref(false);
         const alertMessage = ref("");
+        const selectedName = ref(null); // Will store names like "3m" (peg) or "2m" (base)
 
-        // Logic Helpers
-        const selectedId = ref(null);
-        const meshes = [];
-        let scene, camera, renderer, raycaster, pointer, controls;
+        let scene, camera, renderer, raycaster, pointer;
 
         // --- 2. THEMES ---
         const Themes = {
@@ -39,107 +31,61 @@ createApp({
         };
         const activeTheme = ref(Themes.midnight);
 
-        // --- 3. COMPUTED SCORES ---
-        const displayScore = computed(() => {
-            const p = iPegSLD.value[1]?.length || 0;
-            const g = iPegSLD.value[2]?.length || 0;
-            return `p${p}g${g.toString().padStart(2, '0')}`;
-        });
-
-        const numericScore = computed(() => {
-            return (iPegSLD.value[1]?.length * 10) + (iPegSLD.value[2]?.length || 0);
-        });
-
-        const isOnlineEnabled = computed(() => numericScore.value >= 330);
-
-		       // --- FUNCTIONS ---
-        const INFOalertF = (tXt) => {
-            alertMessage.value = tXt;
-            alertVisible.value = true;
-        };
-
-        const resetGame = () => {
-            INFOalertF("Game Resetting... (Logic to be added next!)");
-        };
-        
-        const showFAQ = () => {
-            // This is the long text from your PegSOL3JS_BE.html file
-            const faqTXT = `<b>How to Play</b><br>
-                The target is to leave only one peg on the board. 
-                Jumps are performed by one peg over another into an empty hole.<br><br>
-                <b>Score System</b><br>
-                p-points: Completed Packs (Cloud levels).<br>
-                g-points: Completed individual stages.<br><br>
-                <b>HX vs HV</b><br>
-                HX (Hexagonal) allows 6 move directions, while HV (Horizontal-Vertical) allows 4.`;
-            INFOalertF(faqTXT);
-        };
-
-        const saveProfile = () => {
-            localStorage.setItem('vPeg_User', userName.value);
-            showProfile.value = false;
-            INFOalertF("Profile saved!");
-        };
-
-        const fetchCloud = () => {
-            if(!isOnlineEnabled.value) return;
-            INFOalertF("Connecting to Firebase Project: puzzlegamesbyvk...");
-        };
-
-
-        // --- 4. BOARD LOGIC (Appear/Disappear Mechanism) ---
-        const spawn = (id, kind, color, z) => {
-            const pos = inicialXY[id];
-            if (!pos) return;
-
-            let geo, mat;
-            // Hardware-friendly Lambert materials
-            if (kind === 'base') {
-                geo = new THREE.CircleGeometry(0.45, 32);
-                mat = new THREE.MeshBasicMaterial({ color: color });
-            } else if (kind === 'ring') {
-                geo = new THREE.TorusGeometry(0.3, 0.08, 8, 20);
-                mat = new THREE.MeshLambertMaterial({ color: color });
-            } else if (kind === 'small') {
-                geo = new THREE.SphereGeometry(0.25, 16, 12);
-                mat = new THREE.MeshLambertMaterial({ color: color });
-            } else { // normal
-                geo = new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16);
-                mat = new THREE.MeshLambertMaterial({ color: color });
-            }
-
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(pos[0], pos[1], z);
-            if (kind !== 'base') mesh.rotation.x = Math.PI / 2;
-            
-            mesh.userData = { id, kind };
-            scene.add(mesh);
-            meshes.push(mesh);
-        };
-
+        // --- 2. THE PROCESSING LOGIC (LoadStageF logic) ---
         const createBoard = () => {
             if (!scene) return;
-            meshes.forEach(m => scene.remove(m));
-            meshes.length = 0;
+            // Clear scene of game objects (starting with 2, 3, 4, or 5)
+            for (let i = scene.children.length - 1; i >= 0; i--) {
+                const obj = scene.children[i];
+                if (obj.name && "2345".includes(obj.name[0])) {
+                    scene.remove(obj);
+                }
+            }
 
             const stageData = Stages6of7[currentPack.value][currentStage.value];
             const theme = activeTheme.value;
 
-            // Layer 1: Bases (stageData[2])
-            stageData[2].forEach(id => spawn(id, 'base', theme.base, 0));
-            // Layer 2: Normal Pegs (stageData[3])
-            stageData[3].forEach(id => spawn(id, 'normal', theme.normal, 0.3));
-            // Layer 3: Ring Pegs (stageData[4])
-            stageData[4].forEach(id => spawn(id, 'ring', theme.ring, 0.3));
-            // Layer 4: Small Pegs (stageData[5]) with "Second Floor" Logic
-            stageData[5].forEach(id => {
-                const isOnNormal = stageData[3].includes(id);
-                const zPos = isOnNormal ? 0.9 : 0.3; 
-                spawn(id, 'small', theme.small, zPos);
+            // In your logic: stageData[2] are the active BASES (ShowBases equivalent)
+            const activeBases = stageData[2]; 
+            
+            activeBases.forEach(id => {
+                // Render Base (Prefix '2')
+                spawn(id, '2', theme.base, 0);
+
+                // Check if this ID has a Normal Peg (Prefix '3')
+                if (stageData[3].includes(id)) spawn(id, '3', theme.normal, 0.3);
+                
+                // Check if this ID has a Ring (Prefix '4')
+                if (stageData[4].includes(id)) spawn(id, '4', theme.ring, 0.3);
+                
+                // Check if this ID has a Small Peg (Prefix '5')
+                if (stageData[5].includes(id)) {
+                    const onNormal = stageData[3].includes(id);
+                    spawn(id, '5', theme.small, onNormal ? 0.9 : 0.3);
+                }
             });
         };
 
-        // --- 5. INPUT & MOVE VALIDATION ---
+        const spawn = (id, prefix, color, z) => {
+            const pos = inicialXY[id];
+            const name = prefix + ABCcds[id]; // e.g., "3m" for peg at index m
+            
+            let geo;
+            if (prefix === '2') geo = new THREE.CircleGeometry(0.45, 32);
+            else if (prefix === '4') geo = new THREE.TorusGeometry(0.3, 0.08, 8, 20);
+            else if (prefix === '5') geo = new THREE.SphereGeometry(0.25, 16, 12);
+            else geo = new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16);
+
+            const mat = new THREE.MeshLambertMaterial({ color: color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(pos[0], pos[1], z);
+            if (prefix !== '2') mesh.rotation.x = Math.PI / 2;
+            
+            mesh.name = name;
+            scene.add(mesh);
+        };
+
+        // --- 3. SELECTION & RAYCASTING ---
         const handleInput = (event) => {
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
@@ -148,87 +94,72 @@ createApp({
             pointer.y = -(y / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObjects(meshes);
+            const intersects = raycaster.intersectObjects(scene.children);
 
             if (intersects.length > 0) {
                 const obj = intersects[0].object;
-                const data = obj.userData;
+                const name = obj.name;
 
-                if (data.kind !== 'base') {
-                    // Selection Logic
-                    selectedId.value = data.id;
-                    INFOalertF(`Selected Peg at ${ABCcds[data.id]}`);
-                } else if (selectedId.value !== null) {
-                    // Try to move to empty base
-                    executeMove(selectedId.value, data.id);
+                if (!name || !"2345".includes(name[0])) return;
+
+                if (name[0] !== '2') {
+                    // It's a PEG (3, 4, or 5)
+                    if (selectedName.value) {
+                        const prev = scene.getObjectByName(selectedName.value);
+                        if (prev) prev.material.emissive.set(0x000000);
+                    }
+                    selectedName.value = name;
+                    obj.material.emissive.set(0x444444);
+                    console.log("Selected:", name);
+                } else if (selectedName.value) {
+                    // It's a BASE ('2') and we have a PEG selected
+                    processMove(selectedName.value, name);
                 }
             }
         };
 
-        const executeMove = (startId, endId) => {
-            const stage = Stages6of7[currentPack.value][currentStage.value];
+        const processMove = (pegName, baseName) => {
+            const pegId = pegName.substring(1); // the 'm' in '3m'
+            const baseId = baseName.substring(1);
             
-            // Porting Transformation logic: Small lands on Ring
-            if (stage[5].includes(startId) && stage[4].includes(endId)) {
-                stage[5] = stage[5].filter(i => i !== startId);
-                stage[4] = stage[4].filter(i => i !== endId);
-                stage[3].push(endId);
-                INFOalertF("Transformation: Normal Peg Formed!");
-            } else {
-                // Standard Jump placeholder
-                INFOalertF(`Moving ${ABCcds[startId]} to ${ABCcds[endId]}`);
-                // Move validation math would go here
-            }
+            // Here you can trigger your original logic: 
+            // 1. Identify middle ID
+            // 2. Update Stages6of7 arrays
+            // 3. Call createBoard()
             
-            selectedId.value = null;
-            createBoard();
+            alertMessage.value = `Jump attempt from ${pegName} to ${baseName}`;
+            alertVisible.value = true;
+            
+            // Reset selection
+            const pegObj = scene.getObjectByName(pegName);
+            if (pegObj) pegObj.material.emissive.set(0x000000);
+            selectedName.value = null;
         };
 
-        // --- 6. INITIALIZATION ---
         const initGame = () => {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(activeTheme.value.bg);
-
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, -2, 12); 
+            camera.position.set(0, 0, 12);
 
             renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             
-            controls = new OrbitControls(camera, renderer.domElement);
+            new OrbitControls(camera, renderer.domElement);
             raycaster = new THREE.Raycaster();
             pointer = new THREE.Vector2();
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const light = new THREE.PointLight(0xffffff, 0.5);
-            light.position.set(5, 5, 10);
-            scene.add(light);
-
             window.addEventListener('mousedown', handleInput);
             window.addEventListener('touchstart', (e) => { handleInput(e); }, { passive: false });
 
-            const animate = () => {
-                requestAnimationFrame(animate);
-                renderer.render(scene, camera);
-            };
-
+            const animate = () => { requestAnimationFrame(animate); renderer.render(scene, camera); };
             createBoard();
             animate();
         };
 
-        // Save progress whenever players data changes
-        watch(players, (newVal) => {
-            localStorage.setItem('vPeg_Players', JSON.stringify(newVal));
-        }, { deep: true });
-
         onMounted(initGame);
 
-        return { 
-            userName, displayScore, numericScore, isOnlineEnabled, 
-            showMenu, showProfile, alertVisible, alertMessage, 
-            currentPlayerIdx, players,
-            INFOalertF, 
-            switchPlayer: (idx) => { currentPlayerIdx.value = idx; localStorage.setItem('vPeg_CurrentIdx', idx); createBoard(); }
-        };
+        return { userName: computed(() => players.value[currentPlayerIdx.value].name), alertVisible, alertMessage, showMenu };
     }
 }).mount('#app');
