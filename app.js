@@ -1,165 +1,145 @@
-
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Stages6of7, inicialXY, ABCcds } from './stages.js';
 
-const { createApp, ref, computed, onMounted, watch } = Vue;
+const { createApp, ref, onMounted } = Vue;
 
 createApp({
     setup() {
-        // --- 1. STATE ---
-        const players = ref(JSON.parse(localStorage.getItem('vPeg_Players')) || [
-            { name: 'Player 1', data: [[],[],[],[],[],["2026-02-27"]] },
-            { name: 'Player 2', data: [[],[],[],[],[],["2026-02-27"]] }
-        ]);
-        const currentPlayerIdx = ref(parseInt(localStorage.getItem('vPeg_CurrentIdx')) || 0);
-        const currentPack = ref(2); 
-        const currentStage = ref(0);
+        // --- 1. GAME STATE ---
+        // 0 = Empty Base, 1 = Normal Peg, -1 = No Base (Outside grid)
+        const board = ref(new Array(81).fill(-1)); 
+        const selectedIndex = ref(null);
         
-        // Modal & Selection
-        const showMenu = ref(false);
-        const alertVisible = ref(false);
-        const alertMessage = ref("");
-        const selectedName = ref(null); // Will store names like "3m" (peg) or "2m" (base)
+        // --- 2. THEMES ---
+        const themes = {
+            neon: { bg: 0x050520, base: 0x333333, peg: 0x00FFFF, highlight: 0xFF00FF },
+            wood: { bg: 0x221100, base: 0x443322, peg: 0xCCAA88, highlight: 0xFFFF00 }
+        };
+        const currentTheme = ref(themes.neon);
 
         let scene, camera, renderer, raycaster, pointer;
 
-        // --- 2. THEMES ---
-        const Themes = {
-            midnight: { bg: 0x050520, base: 0x333333, normal: 0x00FFFF, ring: 0xFF00FF, small: 0xFFFF00 },
-            wood: { bg: 0x221100, base: 0x443322, normal: 0xccaa88, ring: 0xaa5533, small: 0xffeecc }
+        // --- 3. COORDINATE HELPERS ---
+        const getPos = (idx) => {
+            const x = (idx % 9) - 4;
+            const y = 4 - Math.floor(idx / 9);
+            return { x, y };
         };
-        const activeTheme = ref(Themes.midnight);
 
-        // --- 2. THE PROCESSING LOGIC (LoadStageF logic) ---
-        const createBoard = () => {
-            if (!scene) return;
-            // Clear scene of game objects (starting with 2, 3, 4, or 5)
-            for (let i = scene.children.length - 1; i >= 0; i--) {
-                const obj = scene.children[i];
-                if (obj.name && "2345".includes(obj.name[0])) {
-                    scene.remove(obj);
+        // --- 4. BOARD INITIALIZATION ---
+        const loadLazloStage = () => {
+            // Example: Classic English style on a 9x9 grid
+            // Reset board
+            board.value.fill(-1);
+            
+            // Define a 7x7 cross area within the 9x9
+            for(let i=0; i<81; i++) {
+                const {x, y} = getPos(i);
+                if ((Math.abs(x) < 2 || Math.abs(y) < 2) && (Math.abs(x) < 4 && Math.abs(y) < 4)) {
+                    board.value[i] = 1; // Fill with pegs
                 }
             }
+            board.value[40] = 0; // Center is empty
+            renderThreeBoard();
+        };
 
-            const stageData = Stages6of7[currentPack.value][currentStage.value];
-            const theme = activeTheme.value;
-
-            // In your logic: stageData[2] are the active BASES (ShowBases equivalent)
-            const activeBases = stageData[2]; 
+        const renderThreeBoard = () => {
+            if (!scene) return;
+            // Clear previous meshes
+            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
             
-            activeBases.forEach(id => {
-                // Render Base (Prefix '2')
-                spawn(id, '2', theme.base, 0);
+            // Re-add lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 
-                // Check if this ID has a Normal Peg (Prefix '3')
-                if (stageData[3].includes(id)) spawn(id, '3', theme.normal, 0.3);
+            board.value.forEach((type, idx) => {
+                if (type === -1) return;
+
+                const {x, y} = getPos(idx);
                 
-                // Check if this ID has a Ring (Prefix '4')
-                if (stageData[4].includes(id)) spawn(id, '4', theme.ring, 0.3);
-                
-                // Check if this ID has a Small Peg (Prefix '5')
-                if (stageData[5].includes(id)) {
-                    const onNormal = stageData[3].includes(id);
-                    spawn(id, '5', theme.small, onNormal ? 0.9 : 0.3);
+                // Base
+                const baseGeo = new THREE.CircleGeometry(0.4, 32);
+                const baseMat = new THREE.MeshBasicMaterial({ color: currentTheme.value.base });
+                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                baseMesh.position.set(x, y, 0);
+                baseMesh.name = `base_${idx}`;
+                scene.add(baseMesh);
+
+                // Peg
+                if (type === 1) {
+                    const pegGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
+                    const color = (idx === selectedIndex.value) ? currentTheme.value.highlight : currentTheme.value.peg;
+                    const pegMat = new THREE.MeshLambertMaterial({ color: color });
+                    const pegMesh = new THREE.Mesh(pegGeo, pegMat);
+                    pegMesh.position.set(x, y, 0.25);
+                    pegMesh.rotation.x = Math.PI / 2;
+                    pegMesh.name = `peg_${idx}`;
+                    scene.add(pegMesh);
                 }
             });
         };
 
-        const spawn = (id, prefix, color, z) => {
-            const pos = inicialXY[id];
-            const name = prefix + ABCcds[id]; // e.g., "3m" for peg at index m
-            
-            let geo;
-            if (prefix === '2') geo = new THREE.CircleGeometry(0.45, 32);
-            else if (prefix === '4') geo = new THREE.TorusGeometry(0.3, 0.08, 8, 20);
-            else if (prefix === '5') geo = new THREE.SphereGeometry(0.25, 16, 12);
-            else geo = new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16);
-
-            const mat = new THREE.MeshLambertMaterial({ color: color });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(pos[0], pos[1], z);
-            if (prefix !== '2') mesh.rotation.x = Math.PI / 2;
-            
-            mesh.name = name;
-            scene.add(mesh);
-        };
-
-        // --- 3. SELECTION & RAYCASTING ---
+        // --- 5. INTERACTION & JUMP LOGIC ---
         const handleInput = (event) => {
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
-
-            pointer.x = (x / window.innerWidth) * 2 - 1;
-            pointer.y = -(y / window.innerHeight) * 2 + 1;
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            pointer.x = (clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(pointer, camera);
             const intersects = raycaster.intersectObjects(scene.children);
 
             if (intersects.length > 0) {
-                const obj = intersects[0].object;
-                const name = obj.name;
+                const name = intersects[0].object.name;
+                const idx = parseInt(name.split('_')[1]);
 
-                if (!name || !"2345".includes(name[0])) return;
+                if (board.value[idx] === 1) {
+                    selectedIndex.value = idx;
+                } else if (board.value[idx] === 0 && selectedIndex.value !== null) {
+                    attemptJump(selectedIndex.value, idx);
+                }
+                renderThreeBoard();
+            }
+        };
 
-                if (name[0] !== '2') {
-                    // It's a PEG (3, 4, or 5)
-                    if (selectedName.value) {
-                        const prev = scene.getObjectByName(selectedName.value);
-                        if (prev) prev.material.emissive.set(0x000000);
-                    }
-                    selectedName.value = name;
-                    obj.material.emissive.set(0x444444);
-                    console.log("Selected:", name);
-                } else if (selectedName.value) {
-                    // It's a BASE ('2') and we have a PEG selected
-                    processMove(selectedName.value, name);
+        const attemptJump = (start, end) => {
+            const s = getPos(start);
+            const e = getPos(end);
+            
+            const dx = e.x - s.x;
+            const dy = e.y - s.y;
+
+            // Simple Lazlo Jump: Distance of 2, must have peg in middle
+            if ((Math.abs(dx) === 2 && dy === 0) || (Math.abs(dy) === 2 && dx === 0)) {
+                const midIdx = start + (dx / 2) + (dy / 2 * 9);
+                if (board.value[midIdx] === 1) {
+                    board.value[start] = 0;
+                    board.value[midIdx] = 0;
+                    board.value[end] = 1;
+                    selectedIndex.value = null;
                 }
             }
         };
 
-        const processMove = (pegName, baseName) => {
-            const pegId = pegName.substring(1); // the 'm' in '3m'
-            const baseId = baseName.substring(1);
-            
-            // Here you can trigger your original logic: 
-            // 1. Identify middle ID
-            // 2. Update Stages6of7 arrays
-            // 3. Call createBoard()
-            
-            alertMessage.value = `Jump attempt from ${pegName} to ${baseName}`;
-            alertVisible.value = true;
-            
-            // Reset selection
-            const pegObj = scene.getObjectByName(pegName);
-            if (pegObj) pegObj.material.emissive.set(0x000000);
-            selectedName.value = null;
-        };
-
-        const initGame = () => {
+        const initThree = () => {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(activeTheme.value.bg);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 12);
-
+            scene.background = new THREE.Color(currentTheme.value.bg);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(0, -2, 8);
             renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            
             new OrbitControls(camera, renderer.domElement);
             raycaster = new THREE.Raycaster();
             pointer = new THREE.Vector2();
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             window.addEventListener('mousedown', handleInput);
-            window.addEventListener('touchstart', (e) => { handleInput(e); }, { passive: false });
-
+            loadLazloStage();
+            
             const animate = () => { requestAnimationFrame(animate); renderer.render(scene, camera); };
-            createBoard();
             animate();
         };
 
-        onMounted(initGame);
+        onMounted(initThree);
 
-        return { userName: computed(() => players.value[currentPlayerIdx.value].name), alertVisible, alertMessage, showMenu };
+        return { changeTheme: (t) => { currentTheme.value = themes[t]; scene.background.set(themes[t].bg); renderThreeBoard(); } };
     }
 }).mount('#app');
