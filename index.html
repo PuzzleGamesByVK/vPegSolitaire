@@ -12,11 +12,10 @@
     <div id="mDiv1">
         <button class="ui-btn" @click="showMenu = true">☰ Menu</button>
         <button class="ui-btn" @click="showProfile = true">{{ userName }}</button>
-    <div class="stats-bar">
-    <span>Stage: {{ LazloLevels[currentStageIdx].name }}</span>
-    <span>Moves: {{ moveCount }} / Par: {{ parValue }}</span>
-    </div>
         <button class="ui-btn" @click="resetGame">↻</button>
+<div class="stats-bar">
+    <span>Stage: {{ stageName }}</span> <span>Moves: {{ moveCount }} / Par: {{ currentPar }}</span>
+</div>
     </div>
 
     <div id="container">
