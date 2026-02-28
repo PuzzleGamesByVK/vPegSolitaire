@@ -31,7 +31,7 @@ createApp({
         let scene, camera, renderer, raycaster, pointer;
 
         //const stageName = computed(() => LaslosLeapRaw[currentStageIdx.value][1]);
-        const currentPar = computed(() => LazloPars[currentStageIdx.value]);
+        //const currentPar = computed(() => LazloPars[currentStageIdx.value]);
 
         const loadStage = (idx) => {
             currentStageIdx.value = idx;
