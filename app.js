@@ -6,10 +6,19 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-        const currentStageIdx = ref(0);
-        const board = ref(new Int8Array(81));
-        const moveCount = ref(0);
-        const selectedIdx = ref(null);
+    const currentStageIdx = ref(0);
+    const board = ref(new Int8Array(81));
+    const moveCount = ref(0);
+
+    // FIX: Use .value inside computed functions
+    const stageName = computed(() => {
+        const stage = LaslosLeapRaw[currentStageIdx.value];
+        return stage ? stage[1] : "Loading...";
+    });
+
+    const currentPar = computed(() => {
+        return LazloParsPerStage[currentStageIdx.value] || 0;
+    });
         
         const themes = {
             classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
@@ -121,6 +130,13 @@ createApp({
             animate();
         });
 
-        return { stageName, moveCount, currentPar, loadStage };
+        return {
+        stageName, 
+        moveCount, 
+        currentPar, 
+        currentStageIdx, // Exporting this helps the template see it
+        loadStage,
+        LaslosLeapRaw // Add this to the return object so the HTML can see it!
+        };
     }
 }).mount('#app');
