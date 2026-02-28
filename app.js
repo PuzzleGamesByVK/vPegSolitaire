@@ -29,7 +29,7 @@ createApp({
             moveCount.value = 0;
             selectedIdx.value = null;
             // Get pegs from index 3 of the raw array
-            board.value = convertTo9x9(LaslosLeapRaw[idx][3]); [cite: 1]
+            board.value = convertTo9x9(LaslosLeapRaw[idx][3]); // [cite: 1]
             renderThreeBoard();
         };
 
