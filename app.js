@@ -1,145 +1,126 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { LaslosLeapRaw, LazloPars, convertTo9x9 } from './stages.js';
 
-const { createApp, ref, onMounted } = Vue;
+const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-        // --- 1. GAME STATE ---
-        // 0 = Empty Base, 1 = Normal Peg, -1 = No Base (Outside grid)
-        const board = ref(new Array(81).fill(-1)); 
-        const selectedIndex = ref(null);
+        const currentStageIdx = ref(0);
+        const board = ref(new Int8Array(81));
+        const moveCount = ref(0);
+        const selectedIdx = ref(null);
         
-        // --- 2. THEMES ---
         const themes = {
-            neon: { bg: 0x050520, base: 0x333333, peg: 0x00FFFF, highlight: 0xFF00FF },
-            wood: { bg: 0x221100, base: 0x443322, peg: 0xCCAA88, highlight: 0xFFFF00 }
+            classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
+            sunset: { bg: 0x221100, base: 0x553311, peg: 0xffaa00, select: 0xffffff },
+            neon: { bg: 0x050520, base: 0x333333, peg: 0x00FFFF, select: 0xFF00FF },
+            wood: { bg: 0x221100, base: 0x443322, peg: 0xCCAA88, select: 0xFFFF00 }
         };
-        const currentTheme = ref(themes.neon);
+        const activeTheme = ref(themes.classic);
 
         let scene, camera, renderer, raycaster, pointer;
 
-        // --- 3. COORDINATE HELPERS ---
-        const getPos = (idx) => {
-            const x = (idx % 9) - 4;
-            const y = 4 - Math.floor(idx / 9);
-            return { x, y };
-        };
+        const stageName = computed(() => LaslosLeapRaw[currentStageIdx.value][1]);
+        const currentPar = computed(() => LazloPars[currentStageIdx.value]);
 
-        // --- 4. BOARD INITIALIZATION ---
-        const loadLazloStage = () => {
-            // Example: Classic English style on a 9x9 grid
-            // Reset board
-            board.value.fill(-1);
-            
-            // Define a 7x7 cross area within the 9x9
-            for(let i=0; i<81; i++) {
-                const {x, y} = getPos(i);
-                if ((Math.abs(x) < 2 || Math.abs(y) < 2) && (Math.abs(x) < 4 && Math.abs(y) < 4)) {
-                    board.value[i] = 1; // Fill with pegs
-                }
-            }
-            board.value[40] = 0; // Center is empty
+        const loadStage = (idx) => {
+            currentStageIdx.value = idx;
+            moveCount.value = 0;
+            selectedIdx.value = null;
+            // Get pegs from index 3 of the raw array
+            board.value = convertTo9x9(LaslosLeapRaw[idx][3]); [cite: 1]
             renderThreeBoard();
         };
 
         const renderThreeBoard = () => {
             if (!scene) return;
-            // Clear previous meshes
-            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
-            
-            // Re-add lights
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            // Clear existing game objects
+            scene.children.filter(obj => obj.name && (obj.name.startsWith('b') || obj.name.startsWith('p')))
+                          .forEach(obj => scene.remove(obj));
 
-            board.value.forEach((type, idx) => {
-                if (type === -1) return;
+            board.value.forEach((val, i) => {
+                if (val === -1) return;
+                const x = (i % 9) - 4;
+                const y = 4 - Math.floor(i / 9);
 
-                const {x, y} = getPos(idx);
-                
-                // Base
-                const baseGeo = new THREE.CircleGeometry(0.4, 32);
-                const baseMat = new THREE.MeshBasicMaterial({ color: currentTheme.value.base });
-                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-                baseMesh.position.set(x, y, 0);
-                baseMesh.name = `base_${idx}`;
-                scene.add(baseMesh);
+                // Create Base
+                const bGeo = new THREE.CircleGeometry(0.4, 32);
+                const bMat = new THREE.MeshBasicMaterial({ color: activeTheme.value.base });
+                const bMesh = new THREE.Mesh(bGeo, bMat);
+                bMesh.position.set(x, y, 0);
+                bMesh.name = `b${i}`;
+                scene.add(bMesh);
 
-                // Peg
-                if (type === 1) {
-                    const pegGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
-                    const color = (idx === selectedIndex.value) ? currentTheme.value.highlight : currentTheme.value.peg;
-                    const pegMat = new THREE.MeshLambertMaterial({ color: color });
-                    const pegMesh = new THREE.Mesh(pegGeo, pegMat);
-                    pegMesh.position.set(x, y, 0.25);
-                    pegMesh.rotation.x = Math.PI / 2;
-                    pegMesh.name = `peg_${idx}`;
-                    scene.add(pegMesh);
+                // Create Peg
+                if (val === 1) {
+                    const pGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
+                    const isSel = selectedIdx.value === i;
+                    const pMat = new THREE.MeshLambertMaterial({ color: isSel ? activeTheme.value.select : activeTheme.value.peg });
+                    const pMesh = new THREE.Mesh(pGeo, pMat);
+                    pMesh.position.set(x, y, 0.25);
+                    pMesh.rotation.x = Math.PI / 2;
+                    pMesh.name = `p${i}`;
+                    scene.add(pMesh);
                 }
             });
         };
 
-        // --- 5. INTERACTION & JUMP LOGIC ---
         const handleInput = (event) => {
-            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-            pointer.x = (clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            pointer.x = (x / window.innerWidth) * 2 - 1;
+            pointer.y = -(y / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObjects(scene.children);
+            const hits = raycaster.intersectObjects(scene.children);
+            if (hits.length > 0) {
+                const name = hits[0].object.name;
+                const idx = parseInt(name.substring(1));
 
-            if (intersects.length > 0) {
-                const name = intersects[0].object.name;
-                const idx = parseInt(name.split('_')[1]);
-
-                if (board.value[idx] === 1) {
-                    selectedIndex.value = idx;
-                } else if (board.value[idx] === 0 && selectedIndex.value !== null) {
-                    attemptJump(selectedIndex.value, idx);
+                if (name[0] === 'p') {
+                    selectedIdx.value = idx;
+                } else if (name[0] === 'b' && selectedIdx.value !== null) {
+                    executeJump(selectedIdx.value, idx);
                 }
                 renderThreeBoard();
             }
         };
 
-        const attemptJump = (start, end) => {
-            const s = getPos(start);
-            const e = getPos(end);
-            
-            const dx = e.x - s.x;
-            const dy = e.y - s.y;
+        const executeJump = (start, end) => {
+            if (board.value[end] !== 0) return;
+            const dx = (end % 9) - (start % 9);
+            const dy = Math.floor(end / 9) - Math.floor(start / 9);
 
-            // Simple Lazlo Jump: Distance of 2, must have peg in middle
             if ((Math.abs(dx) === 2 && dy === 0) || (Math.abs(dy) === 2 && dx === 0)) {
-                const midIdx = start + (dx / 2) + (dy / 2 * 9);
-                if (board.value[midIdx] === 1) {
+                const mid = start + (dx / 2) + (dy / 2 * 9);
+                if (board.value[mid] === 1) {
                     board.value[start] = 0;
-                    board.value[midIdx] = 0;
+                    board.value[mid] = 0;
                     board.value[end] = 1;
-                    selectedIndex.value = null;
+                    moveCount.value++;
+                    selectedIdx.value = null;
                 }
             }
         };
 
-        const initThree = () => {
+        onMounted(() => {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(currentTheme.value.bg);
+            scene.background = new THREE.Color(activeTheme.value.bg);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, -2, 8);
+            camera.position.set(0, 0, 10);
             renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             new OrbitControls(camera, renderer.domElement);
             raycaster = new THREE.Raycaster();
             pointer = new THREE.Vector2();
-
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             window.addEventListener('mousedown', handleInput);
-            loadLazloStage();
-            
+            loadStage(0);
             const animate = () => { requestAnimationFrame(animate); renderer.render(scene, camera); };
             animate();
-        };
+        });
 
-        onMounted(initThree);
-
-        return { changeTheme: (t) => { currentTheme.value = themes[t]; scene.background.set(themes[t].bg); renderThreeBoard(); } };
+        return { stageName, moveCount, currentPar, loadStage };
     }
 }).mount('#app');
