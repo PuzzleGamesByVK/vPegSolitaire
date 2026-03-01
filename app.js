@@ -6,20 +6,11 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-    const currentStageIdx = ref(0);
-    const board = ref(new Int8Array(81));
-    const moveCount = ref(0);
-    const selectedIdx = ref(null); // Ensure this is declared BEFORE loadStage
-
-    // FIX: Use .value inside computed functions
-    const stageName = computed(() => {
-        const stage = LaslosLeapRaw[currentStageIdx.value];
-        return stage ? stage[1] : "Loading...";
-    });
-
-    const currentPar = computed(() => {
-        return LazloPars[currentStageIdx.value] || 0;
-    });
+        // --- 1. STATE ---
+        const currentStageIdx = ref(0);
+        const board = ref(new Int8Array(81));
+        const moveCount = ref(0);
+        const selectedIdx = ref(null); // FIX: Must be declared at the top
         
         const themes = {
             classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
@@ -31,30 +22,23 @@ createApp({
 
         let scene, camera, renderer, raycaster, pointer;
 
-        //const stageName = computed(() => LaslosLeapRaw[currentStageIdx.value][1]);
-        //const currentPar = computed(() => LazloPars[currentStageIdx.value]);
+        // --- 2. COMPUTED ---
+        const stageName = computed(() => LaslosLeapRaw[currentStageIdx.value]?.[1] || "Loading...");
+        const currentPar = computed(() => LazloPars[currentStageIdx.value] || 0);
 
-        const loadStage = (idx) => {
-            currentStageIdx.value = idx;
-            moveCount.value = 0;
-            selectedIdx.value = null;
-            // Get pegs from index 3 of the raw array
-            board.value = convertTo9x9(LaslosLeapRaw[idx][3]); // [cite: 1]
-            renderThreeBoard();
-        };
-
+        // --- 3. THE RE-RENDERER (Hoisted) ---
         const renderThreeBoard = () => {
             if (!scene) return;
-            // Clear existing game objects
-            scene.children.filter(obj => obj.name && (obj.name.startsWith('b') || obj.name.startsWith('p')))
-                          .forEach(obj => scene.remove(obj));
+            // Clear only game objects (names starting with 'b' or 'p')
+            const toRemove = scene.children.filter(obj => obj.name && (obj.name[0] === 'b' || obj.name[0] === 'p'));
+            toRemove.forEach(obj => scene.remove(obj));
 
             board.value.forEach((val, i) => {
                 if (val === -1) return;
                 const x = (i % 9) - 4;
                 const y = 4 - Math.floor(i / 9);
 
-                // Create Base
+                // Base
                 const bGeo = new THREE.CircleGeometry(0.4, 32);
                 const bMat = new THREE.MeshBasicMaterial({ color: activeTheme.value.base });
                 const bMesh = new THREE.Mesh(bGeo, bMat);
@@ -62,11 +46,14 @@ createApp({
                 bMesh.name = `b${i}`;
                 scene.add(bMesh);
 
-                // Create Peg
+                // Peg
                 if (val === 1) {
                     const pGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16);
                     const isSel = selectedIdx.value === i;
-                    const pMat = new THREE.MeshLambertMaterial({ color: isSel ? activeTheme.value.select : activeTheme.value.peg });
+                    const pMat = new THREE.MeshLambertMaterial({ 
+                        color: isSel ? activeTheme.value.select : activeTheme.value.peg,
+                        emissive: isSel ? 0x222222 : 0x000000 
+                    });
                     const pMesh = new THREE.Mesh(pGeo, pMat);
                     pMesh.position.set(x, y, 0.25);
                     pMesh.rotation.x = Math.PI / 2;
@@ -76,14 +63,29 @@ createApp({
             });
         };
 
+        const loadStage = (idx) => {
+            currentStageIdx.value = idx;
+            moveCount.value = 0;
+            selectedIdx.value = null; 
+            
+            // Map the peg IDs from index [3] of LaslosLeapRaw
+            const rawPegs = LaslosLeapRaw[idx][3];
+            board.value = convertTo9x9(rawPegs);
+            
+            renderThreeBoard();
+        };
+
+        // --- 4. INTERACTION ---
         const handleInput = (event) => {
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            const x = (event.touches) ? event.touches[0].clientX : event.clientX;
+            const y = (event.touches) ? event.touches[0].clientY : event.clientY;
+            
             pointer.x = (x / window.innerWidth) * 2 - 1;
             pointer.y = -(y / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(pointer, camera);
             const hits = raycaster.intersectObjects(scene.children);
+            
             if (hits.length > 0) {
                 const name = hits[0].object.name;
                 const idx = parseInt(name.substring(1));
@@ -124,20 +126,15 @@ createApp({
             new OrbitControls(camera, renderer.domElement);
             raycaster = new THREE.Raycaster();
             pointer = new THREE.Vector2();
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            scene.add(new THREE.AmbientLight(0xffffff, 1));
+            
             window.addEventListener('mousedown', handleInput);
-            loadStage(0);
+            loadStage(0); // Start with Spoon
+            
             const animate = () => { requestAnimationFrame(animate); renderer.render(scene, camera); };
             animate();
         });
 
-        return {
-        stageName, 
-        moveCount, 
-        currentPar, 
-        currentStageIdx, // Exporting this helps the template see it
-        loadStage,
-        LaslosLeapRaw // Add this to the return object so the HTML can see it!
-        };
+        return { stageName, moveCount, currentPar, loadStage, LaslosLeapRaw, currentStageIdx };
     }
 }).mount('#app');
