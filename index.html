@@ -63,7 +63,7 @@
 
     <div class="sidebar">
     <h3>Stages</h3>
-    <div v-for="(stage, index) in LaslosLeapOldStyleIdxs" 
+    <div v-for="(stage, index) in LaslosLeapRaw" 
          :key="index" 
          @click="loadStage(index)"
          :class="{ active: currentStageIdx === index }">
