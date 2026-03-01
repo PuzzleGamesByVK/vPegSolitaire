@@ -226,6 +226,14 @@ export const convertTo9x9 = (pegIds) => {
     return board;
 }; 
 
+export const TutorialStages = [
+    [0, "The Basic Jump", [0], [440, 450], [], []], // Only 2 pegs to learn jumping
+    [0, "The Corner", [0], [335, 435, 345], [], []]
+];
+
+export const FullPackStages = [
+    [0, "The Giant", [0], [230,240,250,335,345,355,430,440,450,535,545,555,630,640,650,735,745,755,830,840,850], [], []]
+];
 
 //help arrays
 const ABCcds = new Int16Array(
