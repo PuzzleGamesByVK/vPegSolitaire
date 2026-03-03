@@ -2,87 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>vPegSolitaire GitHub</title>
+    <title>vPegSolitaire 9x9</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div id="app">
     <div id="mDiv1">
-        <button class="ui-btn" @click="showMenu = true">☰ Menu</button>
-        <button class="ui-btn" @click="showProfile = true">{{ userName }}</button>
-        <button class="ui-btn" @click="resetGame">↻</button>
-<div class="stats-bar">
-    <span>Stage: {{ stageName }}</span> <span>Moves: {{ moveCount }} / Par: {{ currentPar }}</span>
-</div>
-    </div>
-
-    <div id="container">
-        <canvas id="c"></canvas>
-    </div>
-
-    <div class="modal-black" v-if="showMenu">
-        <div class="modal-content">
-            <span class="close-modal" @click="showMenu = false">&times;</span>
-            <h2>Game Menu</h2>
-            <hr>
-            <button class="menu-item" @click="startLocal">Local Levels</button>
-            <button class="menu-item" :disabled="!isOnlineEnabled" @click="fetchCloud">
-                {{ isOnlineEnabled ? '☁ Cloud Levels' : '🔒 Cloud (Locked)' }}
-            </button>
-            <button class="menu-item" @click="showFAQ">Help / FAQ</button>
-            <button class="menu-item" @click="showMenu = false">Resume Game</button>
+        <div class="stats-bar">
+            <strong>{{ stageName }}</strong> | 
+            Moves: {{ moveCount }} <span v-if="parValue > 0">/ Par: {{ parValue }}</span>
         </div>
-    </div>
-
-    <div class="modal-black" v-if="showProfile">
-        <div class="modal-content">
-            <span class="close-modal" @click="showProfile = false">&times;</span>
-            <h2>Player Profile</h2>
-            <p>Edit your name for the leaderboard:</p>
-            <input type="text" v-model="userName" class="profile-input">
-            <br><br>
-            <button @click="saveProfile">Save Changes</button>
-            
-            <div v-if="isOnlineEnabled" class="firebase-status">
-                <p>✅ Firebase Sync Active</p>
-                <small>Project: vPegSolitaireFB</small>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-black" v-if="alertVisible">
-        <div class="modal-content">
-            <h2>Notice</h2>
-            <div class="alert-body" v-html="alertMessage"></div>
-            <hr>
-            <button @click="alertVisible = false">Understood</button>
+        <div class="pack-btns">
+            <button @click="loadStage(0, 0)">Tutorial</button>
+            <button @click="loadStage(1, 0)">Lazlo's Leap</button>
+            <button @click="loadStage(2, 0)">Full Pack</button>
         </div>
     </div>
 
     <div class="sidebar">
-    <h3>Stages</h3>
-    <div v-for="(stage, index) in LaslosLeapRaw" 
-         :key="index" 
-         @click="loadStage(index)"
-         :class="{ active: currentStageIdx === index }">
-        {{ index + 1 }}. {{ stage[1] }}
+        <h3>Stage List</h3>
+        <div v-for="(stage, idx) in stages3ar[currentPackIdx]" 
+             :key="idx" 
+             @click="loadStage(currentPackIdx, idx)"
+             class="level-item">
+            {{ idx + 1 }}. {{ stage[1] }}
+        </div>
     </div>
-</div>
 
+    <canvas id="c"></canvas>
 </div>
 
 <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
-    }
-  }
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
-
 <script type="module" src="app.js"></script>
-    
 </body>
 </html>
