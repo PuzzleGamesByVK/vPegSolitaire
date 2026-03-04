@@ -46,3 +46,28 @@ body { margin: 0; background-color: purple; overflow: hidden; }
     border: none;
     color: cyan;
 }
+
+.victory-overlay {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 255, 255, 0.9);
+    color: #000;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    z-index: 200;
+    pointer-events: none; /* Let clicks pass through */
+    box-shadow: 0 0 50px cyan;
+}
+
+.bounce-text {
+    font-size: 3rem;
+    margin: 0;
+    animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
