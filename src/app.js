@@ -15,8 +15,14 @@ createApp({
         const selectedIdx = ref(null);
         const lastMovedIdx = ref(null); // Used for multi-jump logic
         const isSidebarOpen = ref(false);
-        const victoryVisible = ref(false);
+        //const victoryVisible = ref(false);
+		const victoryVisible = ref(true); // Start true for the "Welcome"
+		const victoryMessage = ref("Welcome to vPegSolitaire!");
+		const isParAchieved = ref(false);
         
+		// Add a way to track completed stages (Simple version)
+		const completedStages = ref({}); // Structure: { "packIdx-stageIdx": "par" | "done" }
+		
         const themes = {
             classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
             sunset: { bg: 0x221100, base: 0x553311, peg: 0xffaa00, select: 0xffffff },
@@ -65,7 +71,8 @@ createApp({
         };
 
         const loadStage = (packIdx, stageIdx) => {
-            victoryVisible.value = false;
+			victoryVisible.value = false;
+			isParAchieved.value = false;
             currentPackIdx.value = packIdx;
             currentStageIdx.value = stageIdx;
             moveCount.value = 0;
@@ -81,7 +88,13 @@ createApp({
         const checkWin = () => {
             const remaining = board.value.filter(v => v === 1).length;
             if (remaining === 1) {
-                victoryVisible.value = true;
+ 				const par = stages3ar[currentPackIdx.value][currentStageIdx.value][0];
+				const key = `${currentPackIdx.value}-${currentStageIdx.value}`;
+				victoryMessage.value = "SOLVED!";
+				isParAchieved.value = moveCount.value <= par && par > 0;
+            // Save completion status
+            completedStages.value[key] = isParAchieved.value ? 'par' : 'done';
+            victoryVisible.value = true;
                 // Auto-advance to next level after 2.5 seconds
                 setTimeout(() => {
                     const nextIdx = (currentStageIdx.value + 1) % stages3ar[currentPackIdx.value].length;
@@ -186,7 +199,17 @@ createApp({
             loadStage, 
             currentPackIdx, 
             currentStageIdx, 
-            stages3ar 
+            stages3ar,
+			victoryMessage,
+			isParAchieved,
+			completedStages,
+		// Helper for the sidebar checkmarks
+			getCheckmark: (pIdx, sIdx) => {
+            const status = completedStages.value[`${pIdx}-${sIdx}`];
+            if (status === 'par') return ' ✅✅'; // Double check for Par
+            if (status === 'done') return ' ✅';   // Single check for Solve
+			return '';
+			}
         };
     }
 }).mount('#app');
