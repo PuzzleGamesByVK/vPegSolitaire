@@ -6,74 +6,47 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-        const currentPackIdx = ref(1); // 0: Tutorial, 1: Lazlo, 2: Full
+        const currentPackIdx = ref(1);
         const currentStageIdx = ref(0);
         const board = ref(new Int8Array(81));
         const moveCount = ref(0);
         const selectedIdx = ref(null);
-        
-        const themes = {
-            classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
-            sunset: { bg: 0x221100, base: 0x553311, peg: 0xffaa00, select: 0xffffff },
-            neon: { bg: 0x050520, base: 0x333333, peg: 0x00FFFF, select: 0xFF00FF },
-            wood: { bg: 0x221100, base: 0x443322, peg: 0xCCAA88, select: 0xFFFF00 }
-        };
-        const activeTheme = ref(themes.classic);
+        const lastMovedIdx = ref(null); // To track if the same peg is continuing a move
+        const isSidebarOpen = ref(false);
 
         let scene, camera, renderer, raycaster, pointer;
 
-        // --- Helpers for your new array structure ---
-        const currentStageData = computed(() => stages3ar[currentPackIdx.value][currentStageIdx.value]);
-        const stageName = computed(() => currentStageData.value[1]);
-        const parValue = computed(() => currentStageData.value[0]);
-        const targetPegIdx = computed(() => currentStageData.value[2]);
+        // --- MOBILE FRIENDLY INPUT ---
+        const handleInput = (event) => {
+            // Prevent scrolling when touching the game
+            if(event.type === 'touchstart') event.preventDefault();
 
-        const loadStage = (packIdx, stageIdx) => {
-            currentPackIdx.value = packIdx;
-            currentStageIdx.value = stageIdx;
-            moveCount.value = 0;
-            selectedIdx.value = null;
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
             
-            // Direct load from your new Int8Array at index [3]
-            board.value = new Int8Array(stages3ar[packIdx][stageIdx][3]);
+            pointer.x = (x / window.innerWidth) * 2 - 1;
+            pointer.y = -(y / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            const hits = raycaster.intersectObjects(scene.children);
             
-            if (scene) renderThreeBoard();
-        };
+            if (hits.length > 0) {
+                const name = hits[0].object.name;
+                const idx = parseInt(name.substring(1));
 
-        const renderThreeBoard = () => {
-            const toRemove = scene.children.filter(obj => obj.name && (obj.name[0] === 'b' || obj.name[0] === 'p'));
-            toRemove.forEach(obj => scene.remove(obj));
-
-            board.value.forEach((val, i) => {
-                if (val === -1) return; // Outside
-                const x = (i % 9) - 4;
-                const y = 4 - Math.floor(i / 9);
-
-                // Base Mesh
-                const bMesh = new THREE.Mesh(
-                    new THREE.CircleGeometry(0.4, 32),
-                    new THREE.MeshBasicMaterial({ color: activeTheme.value.base })
-                );
-                bMesh.position.set(x, y, 0);
-                bMesh.name = `b${i}`;
-                scene.add(bMesh);
-
-                // Peg Mesh
-                if (val === 1) {
-                    const isSel = selectedIdx.value === i;
-                    const pMesh = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16),
-                        new THREE.MeshLambertMaterial({ color: isSel ? activeTheme.value.select : activeTheme.value.peg })
-                    );
-                    pMesh.position.set(x, y, 0.25);
-                    pMesh.rotation.x = Math.PI / 2;
-                    pMesh.name = `p${i}`;
-                    scene.add(pMesh);
+                if (name[0] === 'p') {
+                    // If we select a NEW peg, the previous "multi-jump" chain ends
+                    if (selectedIdx.value !== idx) lastMovedIdx.value = null;
+                    selectedIdx.value = idx;
+                } else if (name[0] === 'b' && selectedIdx.value !== null) {
+                    executeJump(selectedIdx.value, idx);
                 }
-            });
+                renderThreeBoard();
+            }
         };
 
         const executeJump = (start, end) => {
+            if (board.value[end] !== 0) return;
             const dx = (end % 9) - (start % 9);
             const dy = Math.floor(end / 9) - Math.floor(start / 9);
 
@@ -83,8 +56,16 @@ createApp({
                     board.value[start] = 0;
                     board.value[mid] = 0;
                     board.value[end] = 1;
-                    moveCount.value++;
-                    selectedIdx.value = null;
+
+                    // --- THE SPECIAL MOVE COUNT LOGIC ---
+                    // Only increment if it's NOT the same peg continuing a jump
+                    if (lastMovedIdx.value !== start) {
+                        moveCount.value++;
+                    }
+                    
+                    selectedIdx.value = end; // Auto-select the peg at its new home
+                    lastMovedIdx.value = end; // Mark this peg as the "active" mover
+                    
                     checkWin();
                 }
             }
@@ -93,46 +74,32 @@ createApp({
         const checkWin = () => {
             const remaining = board.value.filter(v => v === 1).length;
             if (remaining === 1) {
-                const lastPegPos = board.value.indexOf(1);
-                const perfect = (targetPegIdx.value === -1 || lastPegPos === targetPegIdx.value);
-                alert(`Stage Cleared! ${perfect ? 'Perfect Center Finish!' : ''}`);
+                triggerSolvedAnimation();
             }
         };
 
-        const handleInput = (event) => {
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
-            pointer.x = (x / window.innerWidth) * 2 - 1;
-            pointer.y = -(y / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(pointer, camera);
-            const hits = raycaster.intersectObjects(scene.children);
-            if (hits.length > 0) {
-                const name = hits[0].object.name;
-                const idx = parseInt(name.substring(1));
-                if (name[0] === 'p') selectedIdx.value = idx;
-                else if (name[0] === 'b' && selectedIdx.value !== null) executeJump(selectedIdx.value, idx);
-                renderThreeBoard();
-            }
+        const triggerSolvedAnimation = () => {
+            // 1. Show 3D "SOLVED" text (or a flash effect)
+            // 2. Wait 2 seconds
+            // 3. Automatically load next stage
+            setTimeout(() => {
+                const nextIdx = (currentStageIdx.value + 1) % stages3ar[currentPackIdx.value].length;
+                loadStage(currentPackIdx.value, nextIdx);
+            }, 2500);
         };
 
-        onMounted(() => {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(activeTheme.value.bg);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 10);
-            renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            new OrbitControls(camera, renderer.domElement);
-            raycaster = new THREE.Raycaster();
-            pointer = new THREE.Vector2();
-            scene.add(new THREE.AmbientLight(0xffffff, 1));
-            window.addEventListener('mousedown', handleInput);
-            loadStage(1, 0); // Load Lazlo Pack, Stage 0
-            const animate = () => { requestAnimationFrame(animate); renderer.render(scene, camera); };
-            animate();
-        });
+        // ... include onMounted and renderThreeBoard from previous version ...
+        // Add listeners for both:
+        // window.addEventListener('mousedown', handleInput);
+        // window.addEventListener('touchstart', handleInput, { passive: false });
 
-        return { stageName, moveCount, parValue, loadStage, currentPackIdx, stages3ar };
+        return { 
+            stageName: computed(() => stages3ar[currentPackIdx.value][currentStageIdx.value][1]),
+            moveCount, 
+            isSidebarOpen,
+            loadStage, 
+            currentPackIdx, 
+            stages3ar 
+        };
     }
 }).mount('#app');
