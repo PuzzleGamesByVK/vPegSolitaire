@@ -20,8 +20,13 @@ createApp({
 		const victoryMessage = ref("Welcome to vPegSolitaire!");
 		const isParAchieved = ref(false);
         
-		// Add a way to track completed stages (Simple version)
-		const completedStages = ref({}); // Structure: { "packIdx-stageIdx": "par" | "done" }
+		const savedData = localStorage.getItem('vPegSave');
+		const completedStages = ref(savedData ? JSON.parse(savedData) : {});
+		//const completedStages = ref({}); // Structure: { "packIdx-stageIdx": "par" | "done" }
+
+		const saveProgress = () => {
+  		localStorage.setItem('vPegSave', JSON.stringify(completedStages.value));
+		};
 		
         const themes = {
             classic: { bg: 0x111111, base: 0x444444, peg: 0x00ffff, select: 0xff00ff },
@@ -93,7 +98,9 @@ createApp({
 				victoryMessage.value = "SOLVED!";
 				isParAchieved.value = moveCount.value <= par && par > 0;
             // Save completion status
-            completedStages.value[key] = isParAchieved.value ? 'par' : 'done';
+		// Update completion status
+        completedStages.value[key] = isParAchieved.value ? 'par' : 'done';
+        saveProgress(); // Persist to browser memory
             victoryVisible.value = true;
                 // Auto-advance to next level after 2.5 seconds
                 setTimeout(() => {
@@ -204,12 +211,12 @@ createApp({
 			isParAchieved,
 			completedStages,
 		// Helper for the sidebar checkmarks
-			getCheckmark: (pIdx, sIdx) => {
-            const status = completedStages.value[`${pIdx}-${sIdx}`];
-            if (status === 'par') return ' ✅✅'; // Double check for Par
-            if (status === 'done') return ' ✅';   // Single check for Solve
-			return '';
-			}
+		getCheckmark: (pIdx, sIdx) => {
+        const status = completedStages.value[`${pIdx}-${sIdx}`];
+        if (status === 'par') return ' ⭐✅'; // Star + Check for Par
+        if (status === 'done') return ' ✅';    // Just Check for Solve
+        return '';
+   		}
         };
     }
 }).mount('#app');
