@@ -31,22 +31,22 @@
         <div class="sidebar-header">
             <h3>Stages</h3>
         </div>
-        <div class="sidebar-list">
-            <div v-for="(stage, idx) in stages3ar[currentPackIdx]" 
-                 :key="idx" 
-                 @click="loadStage(currentPackIdx, idx); isSidebarOpen = false"
-                 :class="['level-item', { active: currentStageIdx === idx }]">
-                {{ idx + 1 }}. {{ stage[1] }}
-            </div>
-        </div>
+    <div class="sidebar-list">
+    <div v-for="(stage, idx) in stages3ar[currentPackIdx]" 
+         :key="idx" 
+         @click="loadStage(currentPackIdx, idx); isSidebarOpen = false"
+         :class="['level-item', { active: currentStageIdx === idx }]">
+        {{ idx + 1 }}. {{ stage[1] }} {{ getCheckmark(currentPackIdx, idx) }}
+    </div>
+    </div>
     </div>
 
     <canvas id="c"></canvas>
     
-    <div v-if="victoryVisible" class="victory-overlay">
-        <h1 class="bounce-text">SOLVED!</h1>
-        <p v-if="moveCount <= parValue && parValue > 0">⭐ PAR ACHIEVED ⭐</p>
-    </div>
+<div v-if="victoryVisible" class="victory-overlay">
+    <h1 class="bounce-text">{{ victoryMessage }}</h1>
+    <p v-if="isParAchieved" style="color: gold; font-weight: bold;">⭐ PAR ACHIEVED ⭐</p>
+    <p v-if="victoryMessage === 'Welcome to vPegSolitaire!'">Select a stage to begin</p>
 </div>
 
 <script type="importmap">
