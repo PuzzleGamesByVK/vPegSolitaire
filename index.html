@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>vPegSolitaire - StackBlitz Sync</title>
+    <title>vPegSolitaire - vue3 - three.js</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="./src/style.css">
 </head>
@@ -49,7 +49,14 @@
     </div>
 </div>
 
-<script type="module" src="./src/app.js"></script>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+    }
+  }
+</script>
 
 </body>
 </html>
