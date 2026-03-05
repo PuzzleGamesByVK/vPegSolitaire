@@ -11,6 +11,8 @@ body { margin: 0; background-color: purple; overflow: hidden; }
     border-radius: 8px;
     color: white;
 }
+button { background: rgba(0,0,0,0.5);     color: white; }
+
 .modal {
     position: fixed;
     z-index: 100;
@@ -29,6 +31,7 @@ body { margin: 0; background-color: purple; overflow: hidden; }
     background: rgba(0,0,0,0.9);
     transition: left 0.3s ease; /* Smooth slide */
     z-index: 100;
+    color: cyan;
 }
 
 .sidebar.open {
