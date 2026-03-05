@@ -10,9 +10,6 @@
 <body>
 
 <div id="app" v-cloak>
-    <button class="menu-toggle" @click="isSidebarOpen = !isSidebarOpen">
-        {{ isSidebarOpen ? '✕' : '☰' }}
-    </button>
 
     <div id="mDiv1">
         <div class="stats-bar">
@@ -28,6 +25,7 @@
     </div>
 
     <div class="sidebar" :class="{ open: isSidebarOpen }">
+            <button class="menu-toggle" @click="isSidebarOpen = !isSidebarOpen">    {{ isSidebarOpen ? '✕' : '☰' }}     </button>
         <div class="sidebar-header">
             <h3>Stages</h3>
         </div>
