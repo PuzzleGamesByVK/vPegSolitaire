@@ -11,7 +11,7 @@ body { margin: 0; background-color: purple; overflow: hidden; }
     border-radius: 8px;
     color: white;
 }
-button { background: rgba(0,0,0,0.5);     color: white; }
+button { background: rgba(0,0,0,0.5);     color: white;     cursor: pointer;}
 
 .modal {
     position: fixed;
@@ -48,6 +48,7 @@ button { background: rgba(0,0,0,0.5);     color: white; }
     background: none;
     border: none;
     color: cyan;
+    cursor: pointer;
 }
 
 .victory-overlay {
