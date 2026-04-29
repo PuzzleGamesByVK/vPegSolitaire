@@ -90,25 +90,44 @@ createApp({
             if (scene) renderThreeBoard();
         };
 
-        const checkWin = () => {
-            const remaining = board.value.filter(v => v === 1).length;
-            if (remaining === 1) {
- 				const par = stages3ar[currentPackIdx.value][currentStageIdx.value][0];
-				const key = `${currentPackIdx.value}-${currentStageIdx.value}`;
-				victoryMessage.value = "SOLVED!";
-				isParAchieved.value = moveCount.value <= par && par > 0;
-            // Save completion status
-		// Update completion status
+const checkWin = () => {
+    // 1. Count remaining pegs
+    const remaining = board.value.filter(v => v === 1).length;
+
+    if (remaining === 1) {
+        const goalIdx = stages3ar[currentPackIdx.value][currentStageIdx.value][2];
+        const currentPegIdx = board.value.indexOf(1); // Find where the last peg actually is
+
+        // 2. Check if the peg is in the correct final position (if one is required)
+        // If goalIdx is -1, any hole is fine. If > -1, it MUST match.
+        if (goalIdx !== -1 && currentPegIdx !== goalIdx) {
+            victoryMessage.value = "Solved, but not in the Goal hole!";
+            isParAchieved.value = false;
+        } else {
+            victoryMessage.value = "SOLVED!";
+            
+            // 3. Check for Par
+            const par = stages3ar[currentPackIdx.value][currentStageIdx.value][0];
+            isParAchieved.value = moveCount.value <= par && par > 0;
+        }
+
+        // 4. Save Progress to LocalStorage
+        const key = `${currentPackIdx.value}-${currentStageIdx.value}`;
         completedStages.value[key] = isParAchieved.value ? 'par' : 'done';
-        saveProgress(); // Persist to browser memory
-            victoryVisible.value = true;
-                // Auto-advance to next level after 2.5 seconds
-                setTimeout(() => {
-                    const nextIdx = (currentStageIdx.value + 1) % stages3ar[currentPackIdx.value].length;
-                    loadStage(currentPackIdx.value, nextIdx);
-                }, 2500);
-            }
-        };
+        
+        // This is the line that saves it to your PC's memory
+        localStorage.setItem('vPegSave', JSON.stringify(completedStages.value));
+
+        // 5. Show the UI and wait before moving to the next stage
+        victoryVisible.value = true;
+        
+        setTimeout(() => {
+            victoryVisible.value = false;
+            const nextIdx = (currentStageIdx.value + 1) % stages3ar[currentPackIdx.value].length;
+            loadStage(currentPackIdx.value, nextIdx);
+        }, 3000); 
+    }
+};
 
         const executeJump = (start, end) => {
             if (board.value[end] !== 0) return;
