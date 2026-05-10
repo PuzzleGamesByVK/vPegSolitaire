@@ -105,7 +105,7 @@ export function solveBFS(initialBoard, goalIdx = 40, isParMode = true) {
             }
         }
 
-        // 3. Move Generation
+        // 3. Move Generator
         for (const i of currentPegs) {
             const moves = getMovesForPeg(board, i, isParMode);
             for (const move of moves) {
