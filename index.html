@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+<<<<<<< HEAD
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>vPeg Solitaire</title>
     <!-- CSS is usually imported in main.js or App.vue, but can stay here -->
@@ -12,3 +13,65 @@
     <script type="module" src="./src/main.js"></script>
 </body>
 </html>
+=======
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>vPegSolitaire - vue3 - three.js</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+
+<div id="app" v-cloak>
+
+    <div id="mDiv1">
+        <div class="stats-bar">
+            <strong>{{ stageName }}</strong> 
+            <span>Moves: {{ moveCount }}</span>
+            <span v-if="parValue > 0">/ Par: {{ parValue }}</span>
+        </div>
+        <div class="pack-btns">
+            <button @click="loadStage(0, 0)" :class="{active: currentPackIdx === 0}">Tutorial</button>
+            <button @click="loadStage(1, 0)" :class="{active: currentPackIdx === 1}">Lazlo</button>
+            <button @click="loadStage(2, 0)" :class="{active: currentPackIdx === 2}">Full</button>
+        </div>
+    </div>
+
+    <div class="sidebar" :class="{ open: isSidebarOpen }">
+            <button class="menu-toggle" @click="isSidebarOpen = !isSidebarOpen">    {{ isSidebarOpen ? '✕' : '☰' }}      </button>   <br>
+        <div class="sidebar-header">
+            <h3>Stages</h3>
+        </div>
+    <div class="sidebar-list">
+    <div v-for="(stage, idx) in stages3ar[currentPackIdx]" 
+         :key="idx" 
+         @click="loadStage(currentPackIdx, idx); isSidebarOpen = false"
+         :class="['level-item', { active: currentStageIdx === idx }]">
+        {{ idx + 1 }}. {{ stage[1] }} {{ getCheckmark(currentPackIdx, idx) }}
+    </div>
+    </div>
+    </div>
+
+    <canvas id="c"></canvas>
+    
+<div v-if="victoryVisible" class="victory-overlay">
+    <h1 class="bounce-text">{{ victoryMessage }}</h1>
+    <p v-if="isParAchieved" style="color: gold; font-weight: bold;">⭐ PAR ACHIEVED ⭐</p>
+    <p v-if="victoryMessage === 'Welcome to vPegSolitaire!'">Select a stage to begin</p>
+</div>
+
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+    }
+  }
+</script>
+
+<script type="module" src="./src/app.js"></script>
+
+</body>
+</html>
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e

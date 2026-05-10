@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 {
   "name": "vpeg-solitaire",
   "version": "0.0.0",
   "private": true,
+=======
+
+{
+  "name": "v-peg-solitaire",
+  "private": true,
+  "version": "0.2.0",
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,11 +17,19 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@vitejs/plugin-vue": "^6.0.6",
     "vite": "^8.0.10"
   },
   "dependencies": {
     "three": "^0.184.0",
     "vue": "^3.5.33"
+=======
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "vue": "^3.4.0"
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e
   }
 }

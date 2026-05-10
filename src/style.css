@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 body { margin: 0; background-color: black; overflow: hidden; }
+=======
+body { margin: 0; background-color: purple; overflow: hidden; }
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e
 #c { width: 100vw; height: 100vh; display: block; }
 #mDiv1 {
     position: absolute;
@@ -37,14 +41,18 @@ button {
     transition: left 0.3s ease; /* Smooth slide */
     z-index: 100;
     color: cyan;
+<<<<<<< HEAD
     display: flex;
     flex-direction: column; /* Stack header and list vertically */
+=======
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e
 }
 
 .sidebar.open {
     left: 0; /* Visible */
 }
 
+<<<<<<< HEAD
 .sidebar-header {
     padding: 15px;
     background: #000; /* Keep header solid */
@@ -83,6 +91,8 @@ button {
     background: rgba(0, 255, 255, 0.1);
 }
 
+=======
+>>>>>>> 75d6a0cf4af42664714fb11fcfa5bc318c49839e
 /* Add a hamburger toggle button in HTML */
 .menu-toggle {
     position: fixed;
