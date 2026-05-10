@@ -1,0 +1,122 @@
+body { margin: 0; background-color: black; overflow: hidden; }
+#c { width: 100vw; height: 100vh; display: block; }
+#mDiv1 {
+    position: absolute;
+    z-index: 10;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    border-radius: 8px;
+    color: white;
+}
+button { 
+    background: rgba(0,0,0,0.5);     
+    color: white;     
+    cursor: pointer;
+    border: 1px solid silver;
+}
+
+.modal {
+    position: fixed;
+    z-index: 100;
+    background: rgba(0,0,0,0.8);
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+}
+.modal-content { background: #333; padding: 20px; border-radius: 12px; color: white; }
+
+.sidebar {
+    position: absolute;
+    left: -220px; /* Hidden */
+    top: 0;
+    width: 200px;
+    height: 100vh;
+    background: rgba(0,0,0,0.9);
+    transition: left 0.3s ease; /* Smooth slide */
+    z-index: 100;
+    color: cyan;
+    display: flex;
+    flex-direction: column; /* Stack header and list vertically */
+}
+
+.sidebar.open {
+    left: 0; /* Visible */
+}
+
+.sidebar-header {
+    padding: 15px;
+    background: #000; /* Keep header solid */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.sidebar-list {
+    flex: 1; /* Take up remaining space */
+    overflow-y: auto; /* Enable scrollbar only for the list */
+    overflow-x: hidden;
+}
+
+/* Optional: Make the scrollbar look "Gamer" style (Cyberpunk/Dark) */
+.sidebar-list::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar-list::-webkit-scrollbar-thumb {
+    background: cyan;
+    border-radius: 10px;
+}
+.sidebar-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+}
+
+.level-item {
+    cursor: pointer !important; /* Force the hand icon */
+    padding: 10px;
+    border-bottom: 1px solid #222;
+    pointer-events: auto; /* Crucial: ensures the item "blocks" the mouse from the canvas */
+    user-select: none; /* Prevents the "text cursor" from appearing when clicking fast */
+}
+
+.level-item:hover {
+    background: rgba(0, 255, 255, 0.1);
+}
+
+/* Add a hamburger toggle button in HTML */
+.menu-toggle {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 110;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: cyan;
+    cursor: pointer;
+}
+
+.victory-overlay {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 255, 255, 0.9);
+    color: #000;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    z-index: 200;
+    pointer-events: none; /* Let clicks pass through */
+    box-shadow: 0 0 50px cyan;
+}
+
+.bounce-text {
+    font-size: 3rem;
+    margin: 0;
+    animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
