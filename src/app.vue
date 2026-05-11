@@ -123,7 +123,7 @@ const renderThreeBoard = () => {
         const key = `${currentPackIdx.value}-${currentStageIdx.value}`;
 
         // Check if the AI was the one moving
-        const solverType = isSolving.value ? 'ai' : 'human'; 
+        const solverType = wasSolvedByAI.value ? 'ai' : 'human';
 
         completedStages.value[key] = {
         status: isParAchieved.value ? 'par' : 'done',
