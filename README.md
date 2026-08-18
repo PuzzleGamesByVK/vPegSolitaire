@@ -24,3 +24,7 @@ To achieve it, we would need a more solid user inderface (sidebar, modals, butto
 The AI BFS SOLVER works fine with almost every Lazlos Leap layout, but it fails solving the classic larger stages (english, french, german etc...)
 If you have a powerful high-end computer you can try it, but you might experience a freezing of the system for 20 seconds.
 Certainly! There are chalenges to improve and hopefuly reach version 1.0.0...
+
+## Notes of version 0.9.2
+Solver has been improved with BFS/DFS hybrid logic.
+English can now be solved via DFS. French layout is our next challenge...
